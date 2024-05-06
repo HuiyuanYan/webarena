@@ -8,7 +8,9 @@ from itertools import combinations
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from browser_env.env_config import (
     ACCOUNTS,
     GITLAB,

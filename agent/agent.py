@@ -115,6 +115,14 @@ class PromptAgent(Agent):
     def set_action_set_tag(self, tag: str) -> None:
         self.action_set_tag = tag
 
+    @property
+    def __prompt_constructor__(self)->PromptConstructor:
+        return self.prompt_constructor
+
+    @property
+    def __current_prompt__(self)->APIInput:
+        return self.current_prompt if self.current_prompt else None
+
     @beartype
     def next_action(
         self, trajectory: Trajectory, intent: str, meta_data: dict[str, Any]
@@ -122,6 +130,7 @@ class PromptAgent(Agent):
         prompt = self.prompt_constructor.construct(
             trajectory, intent, meta_data
         )
+        self.current_prompt = prompt # modified
         lm_config = self.lm_config
         n = 0
         while True:

@@ -1,13 +1,21 @@
 from typing import Any
 
 import tiktoken
-from transformers import LlamaTokenizer  # type: ignore
+from transformers import LlamaTokenizer,AutoTokenizer  # type: ignore
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 class Tokenizer(object):
     def __init__(self, provider: str, model_name: str) -> None:
         if provider == "openai":
-            self.tokenizer = tiktoken.encoding_for_model(model_name)
+            if model_name == "llama3:8b":
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    os.environ.get("MODEL_DIR")
+                )
+            else:
+                self.tokenizer = tiktoken.encoding_for_model(model_name)
         elif provider == "huggingface":
             self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
             # turn off adding special tokens automatically

@@ -8,6 +8,9 @@ import random
 import subprocess
 import tempfile
 import time
+import traceback
+from PIL import Image
+import numpy as np
 from pathlib import Path
 
 import openai
@@ -86,6 +89,7 @@ def config() -> argparse.Namespace:
     parser.add_argument("--viewport_width", type=int, default=1280)
     parser.add_argument("--viewport_height", type=int, default=720)
     parser.add_argument("--save_trace_enabled", action="store_true")
+    parser.add_argument("--save_format_trace_enabled", action="store_true") # modified
     parser.add_argument("--sleep_after_execution", type=float, default=0.0)
 
     parser.add_argument("--max_steps", type=int, default=30)
@@ -214,6 +218,27 @@ def early_stop(
     return False, ""
 
 
+def extract_format_trace(
+    current_prompt:APIInput,
+    action_str:str,
+)->dict:
+    trace_dict = dict()
+    try:
+        for message in current_prompt:
+            if message["role"] == "system" and "name" not in message:
+                # instruction field
+                trace_dict["instruction"] = message["content"]
+            if message["role"] == "user":
+                # input field
+                trace_dict["input"] = message["content"]
+            
+        trace_dict["output"] = action_str
+        return trace_dict
+    except Exception as e:
+        print(traceback.format_exc())
+        print(e)
+        raise ValueError("save trace failed")
+
 def test(
     args: argparse.Namespace,
     agent: Agent | PromptAgent | TeacherForcingAgent,
@@ -239,7 +264,6 @@ def test(
         save_trace_enabled=args.save_trace_enabled,
         sleep_after_execution=args.sleep_after_execution,
     )
-
     for config_file in config_file_list:
         try:
             render_helper = RenderHelper(
@@ -273,22 +297,24 @@ def test(
                     config_file = f"{temp_dir}/{os.path.basename(config_file)}"
                     with open(config_file, "w") as f:
                         json.dump(_c, f)
-
+            
             logger.info(f"[Config file]: {config_file}")
             logger.info(f"[Intent]: {intent}")
 
             agent.reset(config_file)
             trajectory: Trajectory = []
             obs, info = env.reset(options={"config_file": config_file})
+
             state_info: StateInfo = {"observation": obs, "info": info}
             trajectory.append(state_info)
 
             meta_data = {"action_history": ["None"]}
-            while True:
+
+            format_traces_list = []
+            while True:      
                 early_stop_flag, stop_info = early_stop(
                     trajectory, max_steps, early_stop_thresholds
                 )
-
                 if early_stop_flag:
                     action = create_stop_action(f"Early stop: {stop_info}")
                 else:
@@ -296,12 +322,11 @@ def test(
                         action = agent.next_action(
                             trajectory, intent, meta_data=meta_data
                         )
+                        current_prompt = agent.__current_prompt__
                     except ValueError as e:
                         # get the error message
                         action = create_stop_action(f"ERROR: {str(e)}")
-
                 trajectory.append(action)
-
                 action_str = get_action_description(
                     action,
                     state_info["info"]["observation_metadata"],
@@ -310,14 +335,19 @@ def test(
                     if isinstance(agent, PromptAgent)
                     else None,
                 )
+
+                if args.save_format_trace_enabled:
+                    new_trace = extract_format_trace(current_prompt,action_str)
+                    format_traces_list.append(new_trace)
+
                 render_helper.render(
                     action, state_info, meta_data, args.render_screenshot
                 )
                 meta_data["action_history"].append(action_str)
-
+ 
                 if action["action_type"] == ActionTypes.STOP:
                     break
-
+         
                 obs, _, terminated, _, info = env.step(action)
                 state_info = {"observation": obs, "info": info}
                 trajectory.append(state_info)
@@ -347,7 +377,46 @@ def test(
                     Path(args.result_dir) / "traces" / f"{task_id}.zip"
                 )
 
-        except openai.error.OpenAIError as e:
+            if args.save_format_trace_enabled:
+                
+                if score == 1:
+                    result_str = "PASS"
+                    format_traces_list.append({"result":"PASS"})
+                else:
+                    result_str = "FAIL"
+                format_traces_list.append(
+                    {
+                        "meta_data":{
+                            "intent":intent,
+                            "result":result_str
+                        }
+                    }
+                )
+                format_traces_dir = Path(args.result_dir) / "format_traces" / f"task_{task_id}"
+                if not (format_traces_dir).exists():
+                    (format_traces_dir).mkdir(parents=True)
+
+                logger.info(f"[Saving format traces...] Dir: {format_traces_dir}")
+
+                # save text trace
+                format_traces_path = Path(format_traces_dir) / f"{task_id}.json"
+
+                with open(format_traces_path,"w") as f:
+                    json.dump(format_traces_list,f,indent=4)
+                
+                # save screenshot
+                for i,item in enumerate(trajectory):
+                    if i % 2 ==0:
+                        image_arr = item["observation"]["image"]
+                        image = Image.fromarray(image_arr.astype(np.uint8))
+                        filename = f'screenshot_{i//2}.png'
+                        image.save(os.path.join(format_traces_dir, filename))
+                
+                logger.info(f"[Format trace saved] Dir: {format_traces_dir}")
+
+
+
+        except openai.OpenAIError as e:
             logger.info(f"[OpenAI Error] {repr(e)}")
         except Exception as e:
             logger.info(f"[Unhandled Error] {repr(e)}]")
@@ -384,6 +453,9 @@ def prepare(args: argparse.Namespace) -> None:
 
     if not (Path(result_dir) / "traces").exists():
         (Path(result_dir) / "traces").mkdir(parents=True)
+    
+    if not (Path(result_dir) / "format_traces").exists():
+        (Path(result_dir) / "format_traces").mkdir(parents=True)
 
     # log the log file
     with open(os.path.join(result_dir, "log_files.txt"), "a+") as f:
@@ -430,7 +502,7 @@ if __name__ == "__main__":
         print(f"Total {len(test_file_list)} tasks left")
         args.render = False
         args.render_screenshot = True
-        args.save_trace_enabled = True
+        #args.save_trace_enabled = True
 
         args.current_viewport_only = True
         dump_config(args)

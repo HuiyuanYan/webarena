@@ -143,7 +143,7 @@ def gitlab_get_project_memeber_role(page: Page, account_name: str) -> str:
     return role
 
 
-def llm_fuzzy_match(pred: str, reference: str, question: str) -> float:
+def llm_fuzzy_match(pred: str, reference: str, question: str,model:str="llama3:8b") -> float:
     """Check whether the prediction matches the reference with GPT4-turbo"""
     messages: list[dict[str, Any]] = []
     # construct the question to ask
@@ -159,7 +159,7 @@ def llm_fuzzy_match(pred: str, reference: str, question: str) -> float:
     ]
 
     response = generate_from_openai_chat_completion(
-        model="gpt-4-1106-preview",
+        model=model,
         messages=messages,
         temperature=0,
         max_tokens=768,

@@ -1,10 +1,11 @@
 """Replace the website placeholders with website domains from env_config
 Generate the test data"""
 import json
+import sys
 
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from browser_env.env_config import *
-
-
 def main() -> None:
     with open("config_files/test.raw.json", "r") as f:
         raw = f.read()
