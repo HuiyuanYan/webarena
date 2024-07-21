@@ -255,7 +255,7 @@ def generate_from_openai_chat_completion(
         )
     openai.api_key = os.environ.get("OPENAI_API_KEY","ollama")
     openai.organization = os.environ.get("OPENAI_ORGANIZATION", "")
-    openai.base_url = os.environ.get("OPENAI_BASE_URL","http://localhost:6006/v1/")
+    #openai.base_url = os.environ.get("OPENAI_BASE_URL","http://localhost:6006/v1/")
     response = openai.chat.completions.create(  # type: ignore
         model=model,
         messages=messages,

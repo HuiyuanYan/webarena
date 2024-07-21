@@ -52,6 +52,9 @@ def call_llm(
             stop_sequences=lm_config.gen_config["stop_sequences"],
             max_new_tokens=lm_config.gen_config["max_new_tokens"],
         )
+    elif lm_config.provider == "local":
+        #TODO
+        pass
     else:
         raise NotImplementedError(
             f"Provider {lm_config.provider} not implemented"

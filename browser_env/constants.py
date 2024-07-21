@@ -93,6 +93,8 @@ SPECIAL_LOCATORS = (
 
 ASCII_CHARSET = "".join(chr(x) for x in range(32, 128))
 FREQ_UNICODE_CHARSET = "".join(chr(x) for x in range(129, 1000))
+CHINESE_CHARSET = "".join(chr(x) for x in range(0x4E00, 0x9FFF + 1)) + \
+"".join(chr(x) for x in range(0xFF01, 0xFF5F)) + "".join(chr(x) for x in [0x3001, 0x300A, 0x300B]) # CHARACTER + PUNCTUATION + SPECIAL_PUNCTUATION
 UTTERANCE_MAX_LENGTH = 8192
 ATTRIBUTE_MAX_LENGTH = 256
 TEXT_MAX_LENGTH = 256

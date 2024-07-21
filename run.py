@@ -19,7 +19,9 @@ from agent import (
     Agent,
     PromptAgent,
     TeacherForcingAgent,
+    RetrivalAgent,
     construct_agent,
+    construct_retriver
 )
 from agent.prompts import *
 from browser_env import (
@@ -77,7 +79,7 @@ def config() -> argparse.Namespace:
     )
     parser.add_argument(
         "--observation_type",
-        choices=["accessibility_tree", "html", "image"],
+        choices=["accessibility_tree", "html","grounding", "image"],
         default="accessibility_tree",
         help="Observation type",
     )
@@ -112,6 +114,18 @@ def config() -> argparse.Namespace:
         help="When concesecutive repeating action exceeds this threshold, the agent will stop",
         type=int,
         default=3,
+    )
+
+    # retrival config
+    parser.add_argument(
+        "--retrival_enabled",
+        help="After enabling this option, the webpage elements will be filtered by a separate model",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--retrival_instruction_path",
+        type=str,
+        default="agent/prompts/jsons/p_cot_retrival.json"
     )
 
     # lm config
@@ -151,10 +165,8 @@ def config() -> argparse.Namespace:
     args = parser.parse_args()
 
     # check the whether the action space is compatible with the observation space
-    if (
-        args.action_set_tag == "id_accessibility_tree"
-        and args.observation_type != "accessibility_tree"
-    ):
+    if ( args.observation_type == "accessibility_tree" or args.observation_type == "grounding") \
+        and args.action_set_tag != "id_accessibility_tree":
         raise ValueError(
             f"Action type {args.action_set_tag} is incompatible with the observation type {args.observation_type}"
         )
@@ -243,6 +255,7 @@ def test(
     args: argparse.Namespace,
     agent: Agent | PromptAgent | TeacherForcingAgent,
     config_file_list: list[str],
+    retriver: RetrivalAgent = None
 ) -> None:
     scores = []
     max_steps = args.max_steps
@@ -311,6 +324,7 @@ def test(
             meta_data = {"action_history": ["None"]}
 
             format_traces_list = []
+            retrival_obs_list = []
             while True:      
                 early_stop_flag, stop_info = early_stop(
                     trajectory, max_steps, early_stop_thresholds
@@ -318,6 +332,21 @@ def test(
                 if early_stop_flag:
                     action = create_stop_action(f"Early stop: {stop_info}")
                 else:
+                    # TODO 填写过滤/筛选环境信息的逻辑（使用RetrivalAgent)
+                    if args.retrival_enabled:
+                        obs_before = state_info["observation"]["text"]
+                        obs_after = retriver.simplify_observation(
+                            trajectory,intent,meta_data=meta_data
+                        )
+                        trajectory[-1]["observation"]["text"] = obs_after
+                        retrival_obs_list.append(
+                            {
+                                "step": len(retrival_obs_list),
+                                "obs_before": obs_before,
+                                "obs_after": obs_after
+                            }
+                        )
+
                     try:
                         action = agent.next_action(
                             trajectory, intent, meta_data=meta_data
@@ -339,6 +368,7 @@ def test(
                 if args.save_format_trace_enabled:
                     new_trace = extract_format_trace(current_prompt,action_str)
                     format_traces_list.append(new_trace)
+
 
                 render_helper.render(
                     action, state_info, meta_data, args.render_screenshot
@@ -400,17 +430,28 @@ def test(
 
                 # save text trace
                 format_traces_path = Path(format_traces_dir) / f"{task_id}.json"
-
                 with open(format_traces_path,"w") as f:
                     json.dump(format_traces_list,f,indent=4)
                 
+
                 # save screenshot
+                screenshot_dir = Path(format_traces_dir) / "screenshot"
+                if not (screenshot_dir).exists():
+                    (screenshot_dir).mkdir(parents=True)
+
                 for i,item in enumerate(trajectory):
                     if i % 2 ==0:
                         image_arr = item["observation"]["image"]
                         image = Image.fromarray(image_arr.astype(np.uint8))
                         filename = f'screenshot_{i//2}.png'
-                        image.save(os.path.join(format_traces_dir, filename))
+                        image.save(os.path.join(screenshot_dir, filename))
+                
+                # save retrival info
+                retrival_path = Path(format_traces_dir) / f"retrival_{task_id}.json"
+                with open(retrival_path,"w") as f:
+                    json.dump(retrival_obs_list,f,indent=4)
+                
+
                 
                 logger.info(f"[Format trace saved] Dir: {format_traces_dir}")
 
@@ -508,4 +549,5 @@ if __name__ == "__main__":
         dump_config(args)
 
         agent = construct_agent(args)
-        test(args, agent, test_file_list)
+        retriver = construct_retriver(args)
+        test(args, agent, test_file_list,retriver)

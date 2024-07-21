@@ -11,29 +11,8 @@ pip install dotenv
 ```
 
 ## 2.本地模型下载
-由于ollama的模型格式(`.ai`)与常规模型参数格式不一致，而本项目需要用到本地模型`llama3:8b`的参数作为tokenizer，所以需要下载两次模型。
 
-首先常规下载模型到本地：
-```python
-from modelscope import snapshot_download
-# 下载模型参数
-model_dir=snapshot_download('LLM-Research/Meta-Llama-3-8B-Instruct') 
-print(model_dir) #该目录即为设置的tokenizer目录
-```
-
-在`llms/tokenizers.py`下，即可通过本地加载分词器：
-```python
-# line 12
-if provider == "openai":
-            if model_name == "llama3:8b": #本地模型的名字
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    os.environ.get("MODEL_DIR")
-                ) # 通过AutoTokenizer进行加载
-            else:
-                self.tokenizer = tiktoken.encoding_for_model(model_name)
-```
-
-然后下载ollama：
+下载ollama：
 ```shell
 export OLLAMA_HOST="0.0.0.0:XXXX" #设置ollama端口，非必须，默认为11434
 export OLLAMA_MODELS= "YOU_DIR" #设置ollama下载模型的路径，建议设置
@@ -59,7 +38,7 @@ ollama run llama3:8b
 ```python
 OPENAI_API_KEY = "ollama"  # 使用本地模型的话，这个随便填
 OPENAI_BASE_URL = "http://localhost:11434/v1/" # 端口设置为ollama的端口
-MODEL_DIR = "/root/autodl-tmp/Meta-Llama-3-8B-Instruct" # 目录设置为分词模型目录
+
 REDDIT = "http://ec2-3-131-244-37.us-east-2.compute.amazonaws.com:9999"
 GITLAB = "http://ec2-3-131-244-37.us-east-2.compute.amazonaws.com:8023"
 MAP = "http://ec2-3-131-244-37.us-east-2.compute.amazonaws.com:3000"
@@ -75,6 +54,10 @@ HOMEPAGE = "PASS"
 一个运行的示例如下：
 ```shell
 python run.py  --instruction_path agent/prompts/jsons/p_cot_id_actree_2s.json  --test_start_idx 9  --test_end_idx 10  --model llama3:8b  --result_dir results --save_format_trace_enabled
+```
+
+```shell
+python run.py  --instruction_path agent/prompts/jsons/p_cot_id_actree_2s.json --observation_type grounding  --test_start_idx 0  --test_end_idx 10  --model llama3:8b  --result_dir results --save_format_trace_enabled --retrival_enabled --retrival_instruction_path agent/prompts/jsons/p_cot_retrival.json
 ```
 然后会在`results/format_traces/task_9`下看到记录的内容。
 

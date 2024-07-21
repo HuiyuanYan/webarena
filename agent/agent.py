@@ -165,6 +165,53 @@ class PromptAgent(Agent):
     def reset(self, test_config_file: str) -> None:
         pass
 
+class RetrivalAgent(Agent):
+    def __init__(
+        self,
+        lm_config:lm_config.LMConfig,
+        prompt_constructor:PromptConstructor
+    ) -> None:
+        super().__init__()
+        self.lm_config = lm_config
+        self.prompt_constructor = prompt_constructor
+    
+    @property
+    def __prompt_constructor__(self)->PromptConstructor:
+        return self.prompt_constructor
+
+    @property
+    def __current_prompt__(self)->APIInput:
+        return self.current_prompt if self.current_prompt else None
+
+    @beartype
+    def simplify_observation(
+        self, trajectory: Trajectory, intent: str, meta_data: dict[str, Any]
+    )->str:
+        prompt = self.prompt_constructor.construct(
+            trajectory, intent, meta_data
+        )
+        self.current_prompt = prompt # modified
+        lm_config = self.lm_config
+        n = 0
+        while True:
+            response = call_llm(lm_config, prompt)
+            print(response)
+            force_prefix = self.prompt_constructor.instruction[
+                "meta_data"
+            ].get("force_prefix", "")
+            response = f"{force_prefix}{response}"
+            n += 1
+            try:
+                observation = self.prompt_constructor.extract_observation(response)
+                break
+            except ValueError as e:
+                if n >= lm_config.gen_config["max_retry"]:
+                    observation = trajectory[-1]["observation"][self.prompt_constructor.obs_modality]
+                    break
+        return observation
+        
+    def reset(self, test_config_file: str) -> None:
+        pass
 
 def construct_agent(args: argparse.Namespace) -> Agent:
     llm_config = lm_config.construct_llm_config(args)
@@ -189,3 +236,25 @@ def construct_agent(args: argparse.Namespace) -> Agent:
             f"agent type {args.agent_type} not implemented"
         )
     return agent
+
+def construct_retriver(args: argparse.Namespace) -> Agent | None:
+    llm_config = lm_config.construct_llm_config(args)
+
+    retriver: Agent
+    
+    if args.retrival_enabled:
+        with open(args.retrival_instruction_path) as f:
+            constructor_type = json.load(f)["meta_data"]["prompt_constructor"]
+        tokenizer = Tokenizer(args.provider, args.model)
+        prompt_constructor = eval(constructor_type)(
+            args.retrival_instruction_path, lm_config=llm_config, tokenizer=tokenizer
+        )
+        retriver = RetrivalAgent(
+            lm_config=llm_config,
+            prompt_constructor=prompt_constructor
+        )
+    else:
+        return None
+
+    return retriver
+

@@ -8,7 +8,7 @@ import re
 import string
 from enum import IntEnum
 from itertools import chain
-from typing import Any, TypedDict, Union, cast
+from typing import Any, TypedDict, Union, cast,List
 
 import numpy as np
 import numpy.typing as npt
@@ -23,6 +23,7 @@ from playwright.sync_api import BrowserContext, Locator, Page
 from browser_env.constants import (
     ASCII_CHARSET,
     FREQ_UNICODE_CHARSET,
+    CHINESE_CHARSET,
     MAX_ANSWER_LENGTH,
     MAX_ELEMENT_ID,
     MAX_ELEMENT_INDEX_IN_VIEWPORT,
@@ -40,7 +41,7 @@ from browser_env.constants import (
     RolesType,
 )
 from browser_env.processors import ObservationProcessor
-
+from browser_env.grounding import Grounding
 
 class ParsedPlaywrightCode(TypedDict):
     function_name: str
@@ -117,7 +118,7 @@ def action2str(
     sementic_element: the semantic information of the element
     such as a line in an accessibility tree
     """
-    if action_set_tag == "id_accessibility_tree":
+    if action_set_tag == "id_accessibility_tree" or action_set_tag == "grounding":
         element_id = action["element_id"]
         match action["action_type"]:
             case ActionTypes.CLICK:
@@ -326,7 +327,7 @@ def is_equivalent(a: Action, b: Action) -> bool:
 _key2id: dict[str, int] = {
     key: i
     for i, key in enumerate(
-        chain(SPECIAL_KEYS, ASCII_CHARSET, FREQ_UNICODE_CHARSET, ["\n"])
+        chain(SPECIAL_KEYS, ASCII_CHARSET, FREQ_UNICODE_CHARSET,CHINESE_CHARSET,["\n"])
     )
 }
 _id2key: list[str] = sorted(_key2id, key=_key2id.get)  # type: ignore[arg-type]
@@ -372,6 +373,7 @@ def get_action_space() -> spaces.Dict:
                     len(ASCII_CHARSET)
                     + len(SPECIAL_KEYS)
                     + len(FREQ_UNICODE_CHARSET)
+                    + len(CHINESE_CHARSET)
                 ]
                 * TYPING_MAX_LENGTH
             ),
@@ -442,6 +444,7 @@ def create_none_action() -> Action:
         "direction": "",
         "answer": "",
         "raw_prediction": "",
+        "grounding_id": "",
     }
 
 
@@ -622,6 +625,7 @@ def create_click_action(
     element_name: str = "",
     pw_code: str = "",
     nth: int = 0,
+    grounding_id: str = "",
 ) -> Action:
     action = create_none_action()
     action.update(
@@ -632,6 +636,7 @@ def create_click_action(
             "element_name": element_name,
             "nth": nth,
             "pw_code": pw_code,
+            "grounding_id": grounding_id,
         }
     )
     return action
@@ -644,6 +649,7 @@ def create_hover_action(
     element_name: str = "",
     pw_code: str = "",
     nth: int = 0,
+    grounding_id: str = "",
 ) -> Action:
     action = create_none_action()
     action.update(
@@ -654,6 +660,7 @@ def create_hover_action(
             "element_name": element_name,
             "nth": nth,
             "pw_code": pw_code,
+            "grounding_id": grounding_id,
         }
     )
     return action
@@ -667,6 +674,7 @@ def create_type_action(
     element_name: str = "",
     pw_code: str = "",
     nth: int = 0,
+    grounding_id: str = "",
 ) -> Action:
     action = create_none_action()
     action.update(
@@ -678,6 +686,7 @@ def create_type_action(
             "nth": nth,
             "text": _keys2ids(text),
             "pw_code": pw_code,
+            "grounding_id": grounding_id,
         }
     )
     return action
@@ -1355,7 +1364,7 @@ async def aexecute_action(
 
         case _:
             raise ValueError(f"Unknown action type: {action_type}")
-
+    
     return page
 
 
@@ -1582,3 +1591,4 @@ def create_id_based_action(action_str: str) -> Action:
             return create_stop_action(answer)
 
     raise ActionParsingError(f"Invalid action {action_str}")
+

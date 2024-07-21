@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Union,List
 
 import numpy as np
 import numpy.typing as npt
@@ -29,7 +29,6 @@ from .utils import (
     Observation,
     png_bytes_to_numpy,
 )
-
 
 @dataclass
 class PlaywrightScript:
@@ -75,15 +74,15 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
 
     @beartype
     def __init__(
-        self,
-        max_page_length: int = 8192,
-        headless: bool = True,
-        slow_mo: int = 0,
-        observation_type: str = "html",
-        current_viewport_only: bool = False,
-        viewport_size: ViewportSize = {"width": 1280, "height": 720},
-        save_trace_enabled: bool = False,
-        sleep_after_execution: float = 0.0,
+            self,
+            max_page_length: int = 8192,
+            headless: bool = True,
+            slow_mo: int = 0,
+            observation_type: str = "html",
+            current_viewport_only: bool = False,
+            viewport_size: ViewportSize = {"width": 1280, "height": 720},
+            save_trace_enabled: bool = False,
+            sleep_after_execution: float = 0.0,
     ):
         # TODO: make Space[Action] = ActionSpace
         self.action_space = get_action_space()  # type: ignore[assignment]
@@ -94,15 +93,17 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
         self.viewport_size = viewport_size
         self.save_trace_enabled = save_trace_enabled
         self.sleep_after_execution = sleep_after_execution
+        self.current_tab_idx:int = None 
+        self.current_observation:dict[str,Observation] = {}
 
         match observation_type:
-            case "html" | "accessibility_tree":
+            case "html" | "accessibility_tree" | "grounding":
                 self.text_observation_type = observation_type
                 self.image_observation_type = ""
                 self.main_observation_type = "text"
             case "image":
                 self.image_observation_type = observation_type
-                self.text_observation_type = ""  # type: ignore[assignment]
+                self.text_observation_type = "html"  # type: ignore[assignment]
                 self.main_observation_type = "image"
             case _:
                 raise ValueError(
@@ -122,13 +123,7 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
         )
 
     @beartype
-    def setup(self, config_file: Path | None = None) -> None:
-        self.context_manager = sync_playwright()
-        self.playwright = self.context_manager.__enter__()
-        self.browser = self.playwright.chromium.launch(
-            headless=self.headless, slow_mo=self.slow_mo
-        )
-
+    def setup(self, config_file: Path | None = None,url: str| None = None,storage_state_path:str | None = None) -> None:
         if config_file:
             with open(config_file, "r") as f:
                 instance_config = json.load(f)
@@ -138,6 +133,16 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
         storage_state = instance_config.get("storage_state", None)
         start_url = instance_config.get("start_url", None)
         geolocation = instance_config.get("geolocation", None)
+
+        if not config_file:
+            start_url = url
+            storage_state = storage_state_path
+
+        self.context_manager = sync_playwright()
+        self.playwright = self.context_manager.__enter__()
+        self.browser = self.playwright.chromium.launch(
+            headless=self.headless, slow_mo=self.slow_mo
+        )
 
         self.context = self.browser.new_context(
             viewport=self.viewport_size,
@@ -161,6 +166,7 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
             # set the first page as the current page
             self.page = self.context.pages[0]
             self.page.bring_to_front()
+            self.current_tab_idx = 0
         else:
             self.page = self.context.new_page()
             client = self.page.context.new_cdp_session(self.page)
@@ -172,10 +178,10 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
         return page.client  # type: ignore
 
     def _get_obs(self) -> dict[str, Observation]:
-        obs = self.observation_handler.get_observation(
+        self.current_observation = self.observation_handler.get_observation(
             self.page, self.get_page_client(self.page)
         )
-        return obs
+        return self.current_observation
 
     def _get_obs_metadata(self) -> dict[str, ObservationMetadata]:
         metadata = self.observation_handler.get_observation_metadata()
@@ -183,10 +189,10 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
 
     @beartype
     def reset(
-        self,
-        *,
-        seed: int | None = None,
-        options: dict[str, str] | None = None,
+            self,
+            *,
+            seed: int | None = None,
+            options: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Observation], dict[str, Any]]:
         """
         Reset the environment.
@@ -196,6 +202,8 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
         super().reset(seed=seed, options=options)
         if self.reset_finished:
             self.context_manager.__exit__()
+            self.current_tab_idx = None
+            self.current_observation.clear()
 
         if options is not None and "config_file" in options:
             config_file = Path(options["config_file"])
@@ -204,9 +212,13 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
             else:
                 raise ValueError(f"Config file {config_file} does not exist.")
         else:
-            self.setup()
-        self.reset_finished = True
+            url = options.get("start_url",None)
+            storage_state = options.get("storage_state",None)
+            self.setup(url=url,storage_state_path=storage_state)
 
+        
+        
+        self.reset_finished = True
         if self.sleep_after_execution > 0:
             time.sleep(self.sleep_after_execution)
 
@@ -217,7 +229,6 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
             "fail_error": "",
             "observation_metadata": observation_metadata,
         }
-
         return (observation, info)
 
     def save_trace(self, trace_path: str | Path) -> None:
@@ -229,11 +240,10 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
             self.context_manager.__exit__()
 
     def step(
-        self, action: Action
+            self, action: Action
     ) -> tuple[dict[str, Observation], float, bool, bool, dict[str, Any]]:
         if not self.reset_finished:
             raise RuntimeError("Call reset first before calling step.")
-
         success = False
         fail_error = ""
         try:
@@ -243,6 +253,7 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
                 self.context,
                 self.observation_handler.action_processor,
             )
+            self.current_tab_idx = self.context.pages.index(self.page) # update current page
             success = True
         except Exception as e:
             fail_error = str(e)
@@ -259,6 +270,7 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
             "fail_error": fail_error,
             "observation_metadata": observation_metadata,
         }
+
         msg = (
             observation,
             float(success),  # reward
@@ -267,3 +279,18 @@ class ScriptBrowserEnv(Env[dict[str, Observation], Action]):
             info,
         )
         return msg
+    
+    def get_pages(self)->List[Page]:
+        return [page for page in self.context.pages]
+
+    def get_current_tab_idx(self)->int|None:
+        return self.current_tab_idx
+    
+    def get_pages_url(self)->List[str]:
+        return [page.url for page in self.context.pages]
+    
+    def get_pages_screenshot(self)->List[bytes]:
+        return [page.screenshot() for page in self.context.pages]
+    
+    def get_current_observation(self) -> dict[str,Observation]:
+        return self.current_observation

@@ -1,20 +1,22 @@
 import json
 import re
 from collections import defaultdict
-from typing import Any, TypedDict, Union
+from typing import Any, TypedDict, List,Dict,Tuple
 
 import numpy as np
 import numpy.typing as npt
 from gymnasium import spaces
 from playwright.sync_api import CDPSession, Page, ViewportSize
 
-from browser_env.constants import (
+from .constants import (
     ASCII_CHARSET,
     FREQ_UNICODE_CHARSET,
+    CHINESE_CHARSET,
     IGNORED_ACTREE_PROPERTIES,
     UTTERANCE_MAX_LENGTH,
 )
-
+from .grounding_rule import js_marking
+from .grounding import Grounding
 from .utils import (
     AccessibilityTree,
     AccessibilityTreeNode,
@@ -30,7 +32,7 @@ IN_VIEWPORT_RATIO_THRESHOLD = 0.6
 
 
 class ObservationProcessor:
-    def process(self, page: Page, client: CDPSession) -> Observation:
+    def process(self, page: Page, client: CDPSession) -> Observation | Dict[str,Observation]:
         raise NotImplementedError
 
 
@@ -89,7 +91,7 @@ class TextObervationProcessor(ObservationProcessor):
         win_right_bound = win_left_bound + win_width
         win_lower_bound = win_top_bound + win_height
         device_pixel_ratio = page.evaluate("window.devicePixelRatio")
-        assert device_pixel_ratio == 1.0, "devicePixelRatio is not 1.0"
+        #assert device_pixel_ratio == 1.0, "devicePixelRatio is not 1.0"
 
         config: BrowserConfig = {
             "win_top_bound": win_top_bound,
@@ -562,15 +564,14 @@ class TextObervationProcessor(ObservationProcessor):
         """further clean accesibility tree"""
         clean_lines: list[str] = []
         for line in tree_str.split("\n"):
-            # remove statictext if the content already appears in the previous line
             if "statictext" in line.lower():
                 prev_lines = clean_lines[-3:]
-                pattern = r"\[\d+\] StaticText (.+)"
+                pattern = r"\[\d+\] StaticText '([^']+)'"
 
-                match = re.search(pattern, line, re.DOTALL)
+                match = re.search(pattern, line)
                 if match:
-                    static_text = match.group(1)[1:-1]  # remove the quotes
-                    if static_text and all(
+                    static_text = match.group(1)
+                    if all(
                         static_text not in prev_line
                         for prev_line in prev_lines
                     ):
@@ -580,6 +581,27 @@ class TextObervationProcessor(ObservationProcessor):
 
         return "\n".join(clean_lines)
 
+
+    def fetch_page_groundings(self,page:Page,rule:str)->List[Grounding]:
+        try:
+            groundings = page.eval_on_selector(selector="body",expression=rule)
+            groundings_list = [Grounding.from_dict(grounding) for grounding in groundings]
+        except:
+            page.wait_for_event("load")
+            groundings = page.eval_on_selector(selector="body",expression=rule)
+            groundings_list = [Grounding.from_dict(grounding) for grounding in groundings]
+        return groundings_list
+    
+    @staticmethod
+    def parse_grounding_list(grounding_list:List[Grounding])->Tuple[str,Dict[str,Any]]:
+        grounding_str_list = []
+        obs_nodes_info = {}
+        for grounding in grounding_list:
+            grounding_str_list.append(grounding.__str__())
+            obs_nodes_info[f'{grounding.idx}'] = grounding.to_dict()
+        content = '\n\t\t'.join(grounding_str_list)
+        return content,obs_nodes_info
+        
     def process(self, page: Page, client: CDPSession) -> str:
         # get the tab info
         open_tabs = page.context.pages
@@ -629,6 +651,15 @@ class TextObervationProcessor(ObservationProcessor):
             self.obs_nodes_info = obs_nodes_info
             self.meta_data["obs_nodes_info"] = obs_nodes_info
 
+        elif self.observation_type == "grounding":
+            grounding_list = self.fetch_page_groundings(
+                page,
+                js_marking
+            )
+            content,obs_nodes_info = self.parse_grounding_list(grounding_list)
+            self.obs_nodes_info = obs_nodes_info
+            self.meta_data["obs_nodes_info"] = obs_nodes_info
+            pass
         else:
             raise ValueError(
                 f"Invalid observatrion type: {self.observation_type}"
@@ -649,7 +680,6 @@ class TextObervationProcessor(ObservationProcessor):
             center_y / self.viewport_size["height"],
         )
 
-
 class ImageObservationProcessor(ObservationProcessor):
     def __init__(self, observation_type: str):
         self.observation_type = observation_type
@@ -663,7 +693,6 @@ class ImageObservationProcessor(ObservationProcessor):
             page.wait_for_event("load")
             screenshot = png_bytes_to_numpy(page.screenshot())
         return screenshot
-
 
 class ObservationHandler:
     """Main entry point to access all observation processor"""
@@ -689,7 +718,7 @@ class ObservationHandler:
         text_space = spaces.Text(
             min_length=0,
             max_length=UTTERANCE_MAX_LENGTH,
-            charset=ASCII_CHARSET + FREQ_UNICODE_CHARSET,
+            charset=ASCII_CHARSET + FREQ_UNICODE_CHARSET + CHINESE_CHARSET,
         )
 
         image_space = spaces.Box(

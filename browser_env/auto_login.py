@@ -6,10 +6,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from itertools import combinations
 from pathlib import Path
-
 from playwright.sync_api import sync_playwright
+
 import sys
-from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from browser_env.env_config import (
     ACCOUNTS,
@@ -21,7 +20,6 @@ from browser_env.env_config import (
 
 HEADLESS = True
 SLOW_MO = 0
-
 
 SITES = ["gitlab", "shopping", "shopping_admin", "reddit"]
 URLS = [

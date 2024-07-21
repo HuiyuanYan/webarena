@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Any, Dict, TypedDict, Union
+from typing import Any, Dict, TypedDict, Union,List
 
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
-
+from .grounding import Grounding
 
 @dataclass
 class DetachedPage:
@@ -72,7 +72,7 @@ AccessibilityTree = list[AccessibilityTreeNode]
 DOMTree = list[DOMNode]
 
 
-Observation = str | npt.NDArray[np.uint8]
+Observation = str | npt.NDArray[np.uint8] | List[Grounding]
 
 
 class StateInfo(TypedDict):

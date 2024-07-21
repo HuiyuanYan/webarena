@@ -10,10 +10,8 @@ load_dotenv()
 class Tokenizer(object):
     def __init__(self, provider: str, model_name: str) -> None:
         if provider == "openai":
-            if model_name == "llama3:8b":
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    os.environ.get("MODEL_DIR")
-                )
+            if model_name == "llama3:8b": # same as gpt4
+                self.tokenizer = tiktoken.encoding_for_model('gpt-4')
             else:
                 self.tokenizer = tiktoken.encoding_for_model(model_name)
         elif provider == "huggingface":

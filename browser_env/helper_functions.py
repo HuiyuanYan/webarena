@@ -41,7 +41,7 @@ def get_render_action(
 ) -> str:
     """Parse the predicted actions for rendering purpose. More comprehensive information"""
     match action_set_tag:
-        case "id_accessibility_tree":
+        case "id_accessibility_tree" | "grounding":
             text_meta_data = observation_metadata["text"]
             if action["element_id"] in text_meta_data["obs_nodes_info"]:
                 node_content = text_meta_data["obs_nodes_info"][
@@ -70,8 +70,9 @@ def get_action_description(
     """Generate the text version of the predicted actions to store in action history for prompt use.
     May contain hint information to recover from the failures"""
 
+    # print(f'action_set_tag in get_action_description:\n{action_set_tag}')
     match action_set_tag:
-        case "id_accessibility_tree":
+        case "id_accessibility_tree" | "grounding":
             text_meta_data = observation_metadata["text"]
             if action["action_type"] in [
                 ActionTypes.CLICK,
@@ -88,7 +89,7 @@ def get_action_description(
                         action, action_set_tag, node_content
                     )
                 else:
-                    action_str = f"Attempt to perfom \"{action_name}\" on element \"[{action['element_id']}]\" but no matching element found. Please check the observation more carefully."
+                    action_str = f"Attempt to perfom \"{action_name}\" on element \"[{action['grounding_id']}]\" but no matching element found. Please check the observation more carefully."
             else:
                 if (
                     action["action_type"] == ActionTypes.NONE
@@ -107,6 +108,7 @@ def get_action_description(
         case _:
             raise ValueError(f"Unknown action type {action['action_type']}")
 
+    # print(f'action_str:\n{action_str}')
     return action_str
 
 
@@ -127,7 +129,7 @@ class RenderHelper(object):
         self.action_set_tag = action_set_tag
 
         self.render_file = open(
-            Path(result_dir) / f"render_{task_id}.html", "a+"
+            Path(result_dir) / f"render_{task_id}.html", "a+", encoding='utf-8'
         )
         self.render_file.truncate(0)
         # write init template
