@@ -433,3 +433,97 @@ playwright._impl._api_types.TimeoutError: Timeout 30000.0ms exceeded while waiti
 =========================== logs ===========================
 waiting for event "load"
 ============================================================
+[Config file]: /tmp/tmpvot7bkh5/11.json
+[Unhandled Error] LookupError("\n**********************************************************************\n  Resource \x1b[93mpunkt\x1b[0m not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  \x1b[31m>>> import nltk\n  >>> nltk.download('punkt')\n  \x1b[0m\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load \x1b[93mtokenizers/punkt/PY3/english.pickle\x1b[0m\n\n  Searched in:\n    - '/home/yangfuning/nltk_data'\n    - '/home/yangfuning/.conda/envs/webarena/nltk_data'\n    - '/home/yangfuning/.conda/envs/webarena/share/nltk_data'\n    - '/home/yangfuning/.conda/envs/webarena/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n    - ''\n**********************************************************************\n")
+Traceback (most recent call last):
+  File "/data5/yangfn/webarena/run.py", line 391, in test
+    score = evaluator(
+  File "<@beartype(evaluation_harness.evaluators.EvaluatorComb.__call__) at 0x7f2ac5a57eb0>", line 112, in __call__
+  File "/data5/yangfn/webarena/evaluation_harness/evaluators.py", line 350, in __call__
+    cur_score = evaluator(trajectory, config_file, page, client)
+  File "/data5/yangfn/webarena/evaluation_harness/evaluators.py", line 145, in __call__
+    score *= self.must_include(
+  File "<@beartype(evaluation_harness.evaluators.StringEvaluator.must_include) at 0x7f2ac5a57520>", line 69, in must_include
+  File "/data5/yangfn/webarena/evaluation_harness/evaluators.py", line 106, in must_include
+    and len(word_tokenize(clean_ref)) == 1
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/tokenize/__init__.py", line 129, in word_tokenize
+    sentences = [text] if preserve_line else sent_tokenize(text, language)
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/tokenize/__init__.py", line 106, in sent_tokenize
+    tokenizer = load(f"tokenizers/punkt/{language}.pickle")
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/data.py", line 750, in load
+    opened_resource = _open(resource_url)
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/data.py", line 876, in _open
+    return find(path_, path + [""]).open()
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/data.py", line 583, in find
+    raise LookupError(resource_not_found)
+LookupError: 
+**********************************************************************
+  Resource [93mpunkt[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('punkt')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mtokenizers/punkt/PY3/english.pickle[0m
+
+  Searched in:
+    - '/home/yangfuning/nltk_data'
+    - '/home/yangfuning/.conda/envs/webarena/nltk_data'
+    - '/home/yangfuning/.conda/envs/webarena/share/nltk_data'
+    - '/home/yangfuning/.conda/envs/webarena/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+    - ''
+**********************************************************************
+
+[Config file]: /tmp/tmpg9gq89jg/11.json
+[Unhandled Error] LookupError("\n**********************************************************************\n  Resource \x1b[93mpunkt\x1b[0m not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  \x1b[31m>>> import nltk\n  >>> nltk.download('punkt')\n  \x1b[0m\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load \x1b[93mtokenizers/punkt/PY3/english.pickle\x1b[0m\n\n  Searched in:\n    - '/home/yangfuning/nltk_data'\n    - '/home/yangfuning/.conda/envs/webarena/nltk_data'\n    - '/home/yangfuning/.conda/envs/webarena/share/nltk_data'\n    - '/home/yangfuning/.conda/envs/webarena/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n    - ''\n**********************************************************************\n")
+Traceback (most recent call last):
+  File "/data5/yangfn/webarena/run.py", line 391, in test
+    score = evaluator(
+  File "<@beartype(evaluation_harness.evaluators.EvaluatorComb.__call__) at 0x7fd28ee37eb0>", line 112, in __call__
+  File "/data5/yangfn/webarena/evaluation_harness/evaluators.py", line 350, in __call__
+    cur_score = evaluator(trajectory, config_file, page, client)
+  File "/data5/yangfn/webarena/evaluation_harness/evaluators.py", line 145, in __call__
+    score *= self.must_include(
+  File "<@beartype(evaluation_harness.evaluators.StringEvaluator.must_include) at 0x7fd28ee37520>", line 69, in must_include
+  File "/data5/yangfn/webarena/evaluation_harness/evaluators.py", line 106, in must_include
+    and len(word_tokenize(clean_ref)) == 1
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/tokenize/__init__.py", line 129, in word_tokenize
+    sentences = [text] if preserve_line else sent_tokenize(text, language)
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/tokenize/__init__.py", line 106, in sent_tokenize
+    tokenizer = load(f"tokenizers/punkt/{language}.pickle")
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/data.py", line 750, in load
+    opened_resource = _open(resource_url)
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/data.py", line 876, in _open
+    return find(path_, path + [""]).open()
+  File "/home/yangfuning/.conda/envs/webarena/lib/python3.10/site-packages/nltk/data.py", line 583, in find
+    raise LookupError(resource_not_found)
+LookupError: 
+**********************************************************************
+  Resource [93mpunkt[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('punkt')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mtokenizers/punkt/PY3/english.pickle[0m
+
+  Searched in:
+    - '/home/yangfuning/nltk_data'
+    - '/home/yangfuning/.conda/envs/webarena/nltk_data'
+    - '/home/yangfuning/.conda/envs/webarena/share/nltk_data'
+    - '/home/yangfuning/.conda/envs/webarena/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+    - ''
+**********************************************************************
+
