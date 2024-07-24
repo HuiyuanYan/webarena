@@ -23,6 +23,34 @@ def png_bytes_to_numpy(png: bytes) -> npt.NDArray[np.uint8]:
     """
     return np.array(Image.open(BytesIO(png)))
 
+def crop_images(image_bytes: bytes, left: float, top: float, width: float, height: float) -> bytes:
+    """
+    Crops an image from bytes data and returns the cropped image as bytes.
+
+    Parameters:
+    image_bytes (bytes): The byte data of the image.
+    left (float): The left coordinate of the crop area.
+    top (float): The top coordinate of the crop area.
+    width (float): The width of the crop area.
+    height (float): The height of the crop area.
+
+    Returns:
+    bytes: The byte data of the cropped image.
+    """
+    image = Image.open(BytesIO(image_bytes))
+    
+    # Crop the image
+    cropped_img = image.crop((left, top, left + width, top + height))
+    
+    output_stream = BytesIO()
+    
+    cropped_img.save(output_stream, format='PNG')
+    
+    cropped_bytes = output_stream.getvalue()
+    
+    return cropped_bytes
+
+
 
 class AccessibilityTreeNode(TypedDict):
     nodeId: str
@@ -72,7 +100,7 @@ AccessibilityTree = list[AccessibilityTreeNode]
 DOMTree = list[DOMNode]
 
 
-Observation = str | npt.NDArray[np.uint8] | List[Grounding]
+Observation = str | npt.NDArray[np.uint8] | List[Grounding] | bytes
 
 
 class StateInfo(TypedDict):

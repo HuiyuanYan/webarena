@@ -686,12 +686,17 @@ class ImageObservationProcessor(ObservationProcessor):
         self.observation_tag = "image"
         self.meta_data = create_empty_metadata()
 
-    def process(self, page: Page, client: CDPSession) -> npt.NDArray[np.uint8]:
+    def process(self, page: Page, client: CDPSession , image_type:str = "bytes") -> npt.NDArray[np.uint8] | bytes:
+        """Image_type: "bytes" or "ndarray" """
         try:
-            screenshot = png_bytes_to_numpy(page.screenshot())
+            screenshot = page.screenshot()
+            if image_type == "ndarray":
+                screenshot = png_bytes_to_numpy(screenshot)
         except:
             page.wait_for_event("load")
-            screenshot = png_bytes_to_numpy(page.screenshot())
+            screenshot = page.screenshot()
+            if image_type == "ndarray":
+                screenshot = png_bytes_to_numpy(screenshot)
         return screenshot
 
 class ObservationHandler:
@@ -740,8 +745,17 @@ class ObservationHandler:
     def get_observation(
         self, page: Page, client: CDPSession
     ) -> dict[str, Observation]:
-        text_obs = self.text_processor.process(page, client)
-        image_obs = self.image_processor.process(page, client)
+        if self.main_observation_type == "text" and self.text_processor.observation_type == "grounding":
+            original_screenshot = self.image_processor.process(page,client)
+            text_obs = self.text_processor.process(page, client)
+            grounded_screenshot = self.image_processor.process(page,client)
+            image_obs = {
+                "original":original_screenshot,
+                "grounded":grounded_screenshot
+            }
+        else:
+            text_obs = self.text_processor.process(page, client)
+            image_obs = self.image_processor.process(page, client)
         return {"text": text_obs, "image": image_obs}
 
     def get_observation_metadata(self) -> dict[str, ObservationMetadata]:
