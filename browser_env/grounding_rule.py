@@ -99,8 +99,8 @@ function markPage() {
     items.forEach(function(item, index) {
         item.rects.forEach((rect) => {
             data.push({
-                index: index,
-                text: item.text,
+                backend_id: index,
+                static_text: item.text,
                 tag: item.element.tagName,
                 union_bound: [rect.left,rect.top,rect.width,rect.height]
             });

@@ -2,7 +2,10 @@ import glob
 import importlib
 import json
 import os
+import sys
 
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 # use the current directory as the root
 def run() -> None:

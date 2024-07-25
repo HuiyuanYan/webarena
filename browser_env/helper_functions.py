@@ -89,7 +89,7 @@ def get_action_description(
                         action, action_set_tag, node_content
                     )
                 else:
-                    action_str = f"Attempt to perfom \"{action_name}\" on element \"[{action['grounding_id']}]\" but no matching element found. Please check the observation more carefully."
+                    action_str = f"Attempt to perfom \"{action_name}\" on element \"[{action['element_id']}]\" but no matching element found. Please check the observation more carefully."
             else:
                 if (
                     action["action_type"] == ActionTypes.NONE

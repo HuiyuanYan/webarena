@@ -598,8 +598,14 @@ class TextObervationProcessor(ObservationProcessor):
         obs_nodes_info = {}
         for grounding in grounding_list:
             grounding_str_list.append(grounding.__str__())
-            obs_nodes_info[f'{grounding.idx}'] = grounding.to_dict()
-        content = '\n\t\t'.join(grounding_str_list)
+            obs_nodes_info[f'{grounding.backend_id}'] = {
+                'backend_id':grounding.backend_id,
+                'static_text': grounding.static_text,
+                'tag': grounding.tag,
+                'union_bound':grounding.union_bound,
+                'text':grounding.__str__()
+            }
+        content = '\n\t'.join(grounding_str_list)
         return content,obs_nodes_info
         
     def process(self, page: Page, client: CDPSession) -> str:
@@ -620,6 +626,7 @@ class TextObervationProcessor(ObservationProcessor):
             tab_title_str = " | ".join(
                 ["Tab {idx}" for idx in range(len(open_tabs))]
             )
+        self.meta_data["tab_title_str"] = tab_title_str
 
         try:
             browser_info = self.fetch_browser_info(page, client)

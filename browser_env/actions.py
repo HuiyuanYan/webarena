@@ -444,7 +444,6 @@ def create_none_action() -> Action:
         "direction": "",
         "answer": "",
         "raw_prediction": "",
-        "grounding_id": "",
     }
 
 
@@ -625,7 +624,6 @@ def create_click_action(
     element_name: str = "",
     pw_code: str = "",
     nth: int = 0,
-    grounding_id: str = "",
 ) -> Action:
     action = create_none_action()
     action.update(
@@ -635,8 +633,7 @@ def create_click_action(
             "element_role": _role2id[element_role],
             "element_name": element_name,
             "nth": nth,
-            "pw_code": pw_code,
-            "grounding_id": grounding_id,
+            "pw_code": pw_code
         }
     )
     return action
@@ -649,7 +646,6 @@ def create_hover_action(
     element_name: str = "",
     pw_code: str = "",
     nth: int = 0,
-    grounding_id: str = "",
 ) -> Action:
     action = create_none_action()
     action.update(
@@ -659,8 +655,7 @@ def create_hover_action(
             "element_role": _role2id[element_role],
             "element_name": element_name,
             "nth": nth,
-            "pw_code": pw_code,
-            "grounding_id": grounding_id,
+            "pw_code": pw_code
         }
     )
     return action
@@ -674,7 +669,6 @@ def create_type_action(
     element_name: str = "",
     pw_code: str = "",
     nth: int = 0,
-    grounding_id: str = "",
 ) -> Action:
     action = create_none_action()
     action.update(
@@ -685,8 +679,7 @@ def create_type_action(
             "element_name": element_name,
             "nth": nth,
             "text": _keys2ids(text),
-            "pw_code": pw_code,
-            "grounding_id": grounding_id,
+            "pw_code": pw_code
         }
     )
     return action

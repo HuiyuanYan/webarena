@@ -19,11 +19,10 @@ from agent import (
     Agent,
     PromptAgent,
     TeacherForcingAgent,
-    RetrivalAgent,
-    construct_agent,
-    construct_retriver
+    construct_agent
 )
 from agent.prompts import *
+from retriever.retriever import construct_retriever
 from browser_env import (
     Action,
     ActionTypes,
@@ -39,6 +38,7 @@ from browser_env.helper_functions import (
     get_action_description,
 )
 from evaluation_harness import evaluator_router
+from retriever.retriever import PromptBasedRetriever
 
 LOG_FOLDER = "log_files"
 Path(LOG_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -116,17 +116,39 @@ def config() -> argparse.Namespace:
         default=3,
     )
 
-    # retrival config
+    # retrieval config
+    parser.add_argument("--r_mode", type=int,default=0,help="0: Do not retrieve environmental information; 1: Using language models for retrieval; 2: Using a text embedding model for retrieval.")
+    
+    # retrieval config for prompt based model
+    parser.add_argument("--r_instruction_path",type=str,default="agent/prompts/raw/p_cot_retrieval_2s.py")
+    parser.add_argument("--r_provider", type=str, default="openai")
+    parser.add_argument("--r_model", type=str, default="gpt-3.5-turbo-0613")
+    parser.add_argument("--r_mode", type=str, default="chat")
+    parser.add_argument("--r_temperature", type=float, default=1.0)
+    parser.add_argument("--r_top_p", type=float, default=0.9)
+    parser.add_argument("--r_context_length", type=int, default=0)
+    parser.add_argument("--r_max_tokens", type=int, default=384)
+    parser.add_argument("--r_stop_token", type=str, default=None)
     parser.add_argument(
-        "--retrival_enabled",
-        help="After enabling this option, the webpage elements will be filtered by a separate model",
-        action="store_true"
+        "--r_max_retry",
+        type=int,
+        help="max retry times to perform generations when parsing fails",
+        default=1,
     )
     parser.add_argument(
-        "--retrival_instruction_path",
-        type=str,
-        default="agent/prompts/jsons/p_cot_retrival.json"
+        "--r_max_obs_length",
+        type=int,
+        help="when not zero, will truncate the observation to this length before feeding to the model",
+        default=1920,
     )
+
+    # retrieval config for text embedding model
+    parser.add_argument("--r_model_name_or_path", type=str, help="Model name or path for EmbeddingBased mode")
+    parser.add_argument("--r_tokenizer_name_or_path", type=str, help="Tokenizer name or path for EmbeddingBased mode")
+    parser.add_argument("--r_max_length", type=int, help="Maximum length for EmbeddingBased mode")
+    parser.add_argument("--r_padding", action="store_true", help="Whether to pad sequences for EmbeddingBased mode")
+    parser.add_argument("--r_truncation", action="store_true", help="Whether to truncate sequences for EmbeddingBased mode")
+    parser.add_argument("--r_k_threshold",type=int,default=3)
 
     # lm config
     parser.add_argument("--provider", type=str, default="openai")
@@ -233,6 +255,7 @@ def early_stop(
 def extract_format_trace(
     current_prompt:APIInput,
     action_str:str,
+    response:str
 )->dict:
     trace_dict = dict()
     try:
@@ -245,6 +268,7 @@ def extract_format_trace(
                 trace_dict["input"] = message["content"]
             
         trace_dict["output"] = action_str
+        trace_dict["response"] = response
         return trace_dict
     except Exception as e:
         print(traceback.format_exc())
@@ -255,7 +279,7 @@ def test(
     args: argparse.Namespace,
     agent: Agent | PromptAgent | TeacherForcingAgent,
     config_file_list: list[str],
-    retriver: RetrivalAgent = None
+    retriever: PromptBasedRetriever = None
 ) -> None:
     scores = []
     max_steps = args.max_steps
@@ -321,10 +345,13 @@ def test(
             state_info: StateInfo = {"observation": obs, "info": info}
             trajectory.append(state_info)
 
-            meta_data = {"action_history": ["None"]}
+            meta_data = {
+                "action_history": ["None"],
+                "reflexion":["None"]
+            }
 
             format_traces_list = []
-            retrival_obs_list = []
+            retrieval_obs_list = []
             while True:      
                 early_stop_flag, stop_info = early_stop(
                     trajectory, max_steps, early_stop_thresholds
@@ -332,21 +359,11 @@ def test(
                 if early_stop_flag:
                     action = create_stop_action(f"Early stop: {stop_info}")
                 else:
-                    # TODO 填写过滤/筛选环境信息的逻辑（使用RetrivalAgent)
-                    if args.retrival_enabled:
-                        obs_before = state_info["observation"]["text"]
-                        obs_after = retriver.simplify_observation(
-                            trajectory,intent,meta_data=meta_data
-                        )
-                        trajectory[-1]["observation"]["text"] = obs_after
-                        retrival_obs_list.append(
-                            {
-                                "step": len(retrival_obs_list),
-                                "obs_before": obs_before,
-                                "obs_after": obs_after
-                            }
-                        )
-
+                    obs_after = retriever.simplify_observation(
+                        trajectory,intent,meta_data=meta_data
+                    )
+                    trajectory[-1]["observation"]["text"] = obs_after
+                        
                     try:
                         action = agent.next_action(
                             trajectory, intent, meta_data=meta_data
@@ -366,15 +383,27 @@ def test(
                 )
 
                 if args.save_format_trace_enabled:
-                    new_trace = extract_format_trace(current_prompt,action_str)
+                    new_trace = extract_format_trace(current_prompt,action_str,agent.__current_reponse__)
                     format_traces_list.append(new_trace)
-
+                    
+                    # retrieval
+                    retrieval_meta_data = retriever.get_retriever_meta_data().copy()
+                    retrieval_meta_data["step"] = len(retrieval_obs_list)
+                    retrieval_obs_list.append(
+                            retrieval_meta_data.copy()
+                    )
+                    
 
                 render_helper.render(
                     action, state_info, meta_data, args.render_screenshot
                 )
+
+                reflexion = agent.get_reflexion()
+                
+                meta_data["reflexion"].append(reflexion)
+
                 meta_data["action_history"].append(action_str)
- 
+
                 if action["action_type"] == ActionTypes.STOP:
                     break
          
@@ -446,10 +475,10 @@ def test(
                         filename = f'screenshot_{i//2}.png'
                         image.save(os.path.join(screenshot_dir, filename))
                 
-                # save retrival info
-                retrival_path = Path(format_traces_dir) / f"retrival_{task_id}.json"
-                with open(retrival_path,"w") as f:
-                    json.dump(retrival_obs_list,f,indent=4)
+                # save retrieval info
+                retrieval_path = Path(format_traces_dir) / f"retrieval_{task_id}.json"
+                with open(retrieval_path,"w") as f:
+                    json.dump(retrieval_obs_list,f,indent=4)
                 
 
                 
@@ -549,5 +578,5 @@ if __name__ == "__main__":
         dump_config(args)
 
         agent = construct_agent(args)
-        retriver = construct_retriver(args)
-        test(args, agent, test_file_list,retriver)
+        retriever = construct_retriever(args)
+        test(args, agent, test_file_list,retriever)

@@ -142,6 +142,9 @@ class PromptConstructor(object):
     def _extract_observation(self, response: str) -> str:
         raise NotImplementedError
 
+    def _extract_reflexion(self,response:str) -> str:
+        raise NotImplementedError
+
     def extract_action(self, response: str) -> str:
         response = self._extract_action(response)
         response = self.map_url_to_local(response)
@@ -150,6 +153,11 @@ class PromptConstructor(object):
     def extract_observation(self,response: str) -> str:
         response = self._extract_observation(response)
         return response
+    
+    def extrace_reflexion(self,response:str)->str:
+        response = self._extract_reflexion(response)
+        return response
+
 
 class DirectPromptConstructor(PromptConstructor):
     """The agent will direct predict the action"""
@@ -184,12 +192,18 @@ class DirectPromptConstructor(PromptConstructor):
         url = page.url
         previous_action_str = meta_data["action_history"][-1]
 
-        # input x
+        # other args
+        dynamic_data = {}
+        for key in keywords:
+            if key in meta_data and key != "action_history":
+                dynamic_data[key] = meta_data[key][-1]
+
         current = template.format(
             objective=intent,
             url=self.map_url_to_real(url),
             observation=obs,
             previous_action=previous_action_str,
+            **dynamic_data
         )
 
         # make sure all keywords are replaced
@@ -207,6 +221,35 @@ class DirectPromptConstructor(PromptConstructor):
             raise ActionParsingError(
                 f"Cannot parse action from response {response}"
             )
+    
+    def _extract_observation(self, response: str) -> str:
+        observation_phrase = self.instruction["meta_data"].get("observation_phrase", "")
+        observation_splitter = self.instruction["meta_data"]["observation_splitter"]
+        pattern = rf"{observation_splitter}((.|\n)*?){observation_splitter}"
+        match = re.search(pattern, response)
+        if match:
+            return match.group(1).strip()
+        else:
+            raise ValueError(
+                f'Cannot find the observation "{observation_phrase}" in "{response}"'
+            )
+    
+    def _extract_reflexion(self, response: str) -> str:
+        reflexion_phrase = self.instruction["meta_data"].get("reflexion_phrase", "")
+        
+        if not reflexion_phrase:
+            return ""
+        
+        start_index = response.find(reflexion_phrase)
+        if start_index != -1:
+            end_index = response.find('\n', start_index)
+            if end_index != -1:
+                return response[start_index + len(reflexion_phrase):end_index].strip()
+            else:
+                return response[start_index + len(reflexion_phrase):].strip()
+        else:
+            return f"You did not output the reflection format correctly in your last response:{response},"\
+                    "Please provide your reflexion in the following format: 'In reflexion' followed by your reflexion"
 
 
 class CoTPromptConstructor(PromptConstructor):
@@ -241,11 +284,19 @@ class CoTPromptConstructor(PromptConstructor):
         page = state_info["info"]["page"]
         url = page.url
         previous_action_str = meta_data["action_history"][-1]
+
+        # other args
+        dynamic_data = {}
+        for key in keywords:
+            if key in meta_data and key != "action_history":
+                dynamic_data[key] = meta_data[key][-1]
+
         current = template.format(
             objective=intent,
             url=self.map_url_to_real(url),
             observation=obs,
             previous_action=previous_action_str,
+            **dynamic_data
         )
 
         assert all([f"{{k}}" not in current for k in keywords])
@@ -264,52 +315,26 @@ class CoTPromptConstructor(PromptConstructor):
             raise ActionParsingError(
                 f'Cannot find the answer phrase "{self.answer_phrase}" in "{response}"'
             )
-        
-
-class RetrivalPromptConstructor(PromptConstructor):
-    def __init__(
-        self, 
-        instruction_path: str | Path, 
-        lm_config: lm_config.LMConfig,
-        tokenizer: Tokenizer
-    )->None:
-        super().__init__(instruction_path, lm_config, tokenizer)
-        self.answer_phrase = self.instruction["meta_data"]["answer_phrase"]
-        return
     
-    def construct(
-        self,
-        trajectory: Trajectory,
-        intent: str,
-        meta_data: dict[str, Any] = {},
-    ) -> APIInput:
-        intro = self.instruction["intro"]
-        examples = self.instruction["examples"]
-        template = self.instruction["template"]
-        keywords = self.instruction["meta_data"]["keywords"]
-        state_info: StateInfo = trajectory[-1]  # type: ignore[assignment]
-
-        obs = state_info["observation"][self.obs_modality]
-        max_obs_length = self.lm_config.gen_config["max_obs_length"]
-        if max_obs_length:
-            obs = self.tokenizer.decode(self.tokenizer.encode(obs)[:max_obs_length])  # type: ignore[arg-type]
-
-        page = state_info["info"]["page"]
-        url = page.url
-        previous_action_str = meta_data["action_history"][-1]
-        current = template.format(
-            objective=intent,
-            url=self.map_url_to_real(url),
-            observation=obs,
-            previous_action=previous_action_str,
-        )
-
-        assert all([f"{{k}}" not in current for k in keywords])
-
-        prompt = self.get_lm_api_input(intro, examples, current)
-        return prompt
-
-    def _extract_observation(self,response:str)->str:
+    def _extract_reflexion(self, response: str) -> str:
+        reflexion_phrase = self.instruction["meta_data"].get("reflexion_phrase", "")
+        
+        if not reflexion_phrase:
+            return ""
+        
+        start_index = response.find(reflexion_phrase)
+        if start_index != -1:
+            end_index = response.find('\n', start_index)
+            if end_index != -1:
+                return response[start_index + len(reflexion_phrase):end_index].strip()
+            else:
+                return response[start_index + len(reflexion_phrase):].strip()
+        else:
+            return f"You did not output the reflection format correctly in your last response:{response},"\
+                    "Please provide your reflexion in the following format: 'In reflexion' followed by your reflexion"
+    
+    def _extract_observation(self, response: str) -> str:
+        observation_phrase = self.instruction["meta_data"].get("observation_phrase", "")
         observation_splitter = self.instruction["meta_data"]["observation_splitter"]
         pattern = rf"{observation_splitter}((.|\n)*?){observation_splitter}"
         match = re.search(pattern, response)
@@ -317,6 +342,6 @@ class RetrivalPromptConstructor(PromptConstructor):
             return match.group(1).strip()
         else:
             raise ValueError(
-                f'Cannot find the observation "{self.answer_phrase}" in "{response}"'
+                f'Cannot find the observation "{observation_phrase}" in "{response}"'
             )
-    pass
+

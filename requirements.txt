@@ -67,7 +67,6 @@ types-tqdm==4.66.0.20240417
 typing_extensions==4.12.2
 tzdata==2024.1
 urllib3==2.2.2
--e git+https://github.com/HuiyuanYan/webarena.git@fc5c20c26edf1ae3302bd64e395b64c57d6f25a0#egg=webarena
 Werkzeug==3.0.3
 xxhash==3.4.1
 yarl==1.9.4

@@ -7,7 +7,7 @@ pip install openai --upgrade
 
 pip install transfomers --upgrade
 
-pip install dotenv
+pip install python-dotenv
 ```
 
 ## 2.本地模型下载
@@ -57,8 +57,19 @@ python run.py  --instruction_path agent/prompts/jsons/p_cot_id_actree_2s.json  -
 ```
 
 ```shell
-python run.py  --instruction_path agent/prompts/jsons/p_cot_id_actree_2s.json --observation_type grounding  --test_start_idx 0  --test_end_idx 10  --model llama3:8b  --result_dir results --save_format_trace_enabled --retrival_enabled --retrival_instruction_path agent/prompts/jsons/p_cot_retrival.json
+python run.py  --instruction_path agent/prompts/jsons/p_cot_id_actree_2s.json --observation_type grounding  --test_start_idx 0  --test_end_idx 10  --model llama3:8b  --result_dir results --save_format_trace_enabled --retrieval_enabled --retrieval_instruction_path agent/prompts/jsons/p_cot_retrieval.json
 ```
 然后会在`results/format_traces/task_9`下看到记录的内容。
 
 值得注意的是，`evaluator`使用的`must_include`会用到`nltk`的某些词库，若出现相关报错，可自行下载。
+
+## 安装pytorch
+```shell
+# CUDA 12.1
+pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+```
+
+## 安装flash_attention
+```shell
+pip install flash-attn --no-build-isolation
+```

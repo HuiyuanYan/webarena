@@ -14,7 +14,7 @@ class Grounding:
         height (float): The height of the visual grounding.
     """
 
-    def __init__(self, index: int, text: str, tag: str, union_bound:List[float]):
+    def __init__(self, backend_id: int, static_text: str, tag: str, union_bound:List[float]):
         """
         Initializes a new Grounding object.
 
@@ -28,8 +28,8 @@ class Grounding:
             width (float): The width of the visual grounding.
             height (float): The height of the visual grounding.
         """
-        self.idx = index
-        self.text = text
+        self.backend_id = backend_id
+        self.static_text = static_text
         self.tag = tag
         self.union_bound = union_bound
 
@@ -45,8 +45,8 @@ class Grounding:
             Grounding: A new Grounding object initialized with data from the dictionary.
         """
         return cls(
-            index=data.get('index', 0),
-            text=data.get('text', ''),
+            backend_id=data.get('backend_id', 0),
+            static_text=data.get('static_text', ''),
             tag=data.get('tag', ''),
             union_bound = data.get('union_bound',[])
         )
@@ -59,8 +59,8 @@ class Grounding:
             dict: A dictionary representation of the Grounding object.
         """
         return {
-            'index': self.idx,
-            'text': self.text,
+            'backend_id': self.backend_id,
+            'static_text': self.static_text,
             'tag': self.tag,
             'union_bound':self.union_bound
         }
@@ -83,4 +83,4 @@ class Grounding:
         return Grounding.from_dict(data)
 
     def __str__(self):
-        return f"[{self.idx}] {self.tag} '{self.text}'"
+        return f"[{self.backend_id}] {self.tag} '{self.static_text}'"

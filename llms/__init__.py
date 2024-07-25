@@ -4,11 +4,12 @@ from .providers.openai_utils import (
     generate_from_openai_chat_completion,
     generate_from_openai_completion,
 )
-from .utils import call_llm
+from .utils import call_llm,APIInput
 
 __all__ = [
     "generate_from_openai_completion",
     "generate_from_openai_chat_completion",
     "generate_from_huggingface_completion",
     "call_llm",
+    "APIInput"
 ]
