@@ -37,6 +37,7 @@ from browser_env.helper_functions import (
     RenderHelper,
     get_action_description,
 )
+from browser_env.utils import png_bytes_to_numpy
 from evaluation_harness import evaluator_router
 from retriever.retriever import PromptBasedRetriever
 
@@ -117,7 +118,7 @@ def config() -> argparse.Namespace:
     )
 
     # retrieval config
-    parser.add_argument("--r_mode", type=int,default=0,help="0: Do not retrieve environmental information; 1: Using language models for retrieval; 2: Using a text embedding model for retrieval.")
+    parser.add_argument("--retriever_mode", type=int,default=0,help="0: Do not retrieve environmental information; 1: Using language models for retrieval; 2: Using a text embedding model for retrieval.")
     
     # retrieval config for prompt based model
     parser.add_argument("--r_instruction_path",type=str,default="agent/prompts/raw/p_cot_retrieval_2s.py")
@@ -146,8 +147,8 @@ def config() -> argparse.Namespace:
     parser.add_argument("--r_model_name_or_path", type=str, help="Model name or path for EmbeddingBased mode")
     parser.add_argument("--r_tokenizer_name_or_path", type=str, help="Tokenizer name or path for EmbeddingBased mode")
     parser.add_argument("--r_max_length", type=int, help="Maximum length for EmbeddingBased mode")
-    parser.add_argument("--r_padding", action="store_true", help="Whether to pad sequences for EmbeddingBased mode")
-    parser.add_argument("--r_truncation", action="store_true", help="Whether to truncate sequences for EmbeddingBased mode")
+    parser.add_argument("--r_padding", action="store_false", help="Whether to pad sequences for EmbeddingBased mode")
+    parser.add_argument("--r_truncation", action="store_false", help="Whether to truncate sequences for EmbeddingBased mode")
     parser.add_argument("--r_k_threshold",type=int,default=3)
 
     # lm config
@@ -470,8 +471,12 @@ def test(
 
                 for i,item in enumerate(trajectory):
                     if i % 2 ==0:
-                        image_arr = item["observation"]["image"]
-                        image = Image.fromarray(image_arr.astype(np.uint8))
+                        img_obs = item["observation"]["image"]
+                        if isinstance(img_obs,bytes):
+                            img_arr = png_bytes_to_numpy(img_obs)
+                        elif isinstance(img_obs,dict):
+                            img_arr = png_bytes_to_numpy(img_obs["grounded"])
+                        image = Image.fromarray(img_arr.astype(np.uint8))
                         filename = f'screenshot_{i//2}.png'
                         image.save(os.path.join(screenshot_dir, filename))
                 

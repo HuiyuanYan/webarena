@@ -1,18 +1,25 @@
+import json
+from typing import Any
 import argparse
 from beartype import beartype
-from agent.agent import Agent
-from agent.prompts import Any, PromptConstructor, Tokenizer, Trajectory, json, lm_config
+from agent import(
+    PromptConstructor,
+    CoTPromptConstructor,
+    DirectPromptConstructor
+)
+from llms import (
+    Tokenizer,
+    call_llm,
+    lm_config,
+    APIInput
+)
 from browser_env import Trajectory,StateInfo
 import torch.nn.functional as F
 import torch
-from typing import Any
 
-from llms import call_llm, lm_config, APIInput
-from llms.tokenizers import Tokenizer
-
-import retriever_config
-from retriever_config import EmbeddingConfig
-from .utils import last_token_pool
+from retriever import retriever_config
+from retriever.retriever_config import EmbeddingConfig
+from retriever.utils import last_token_pool
 from transformers import AutoTokenizer, AutoModel
 
 class Retriever:
@@ -36,7 +43,7 @@ class Retriever:
 
 class FakeRetriever(Retriever):
     def __init__(self, *args: Any) -> None:
-        pass
+        super().__init__(*args)
     
     def simplify_observation(
         self, trajectory: Trajectory, intent: str, meta_data: dict[str, Any]
@@ -110,6 +117,7 @@ class EmbeddingBasedRetriever(Retriever):
         self,
         embedding_config:EmbeddingConfig
     ) -> None:
+        super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(embedding_config.model_name_or_path, trust_remote_code=True)
         self.model = AutoModel.from_pretrained(embedding_config.tokenizer_name_or_path, trust_remote_code=True)
         
@@ -121,17 +129,16 @@ class EmbeddingBasedRetriever(Retriever):
     )->str:
         reflexion = meta_data["reflexion"]
         obs_nodes_str_list = []
-        
-        state_info:StateInfo = Trajectory[-1]
-        tab_title_str = state_info["info"]["tab_title_str"]
-        obs_nodes_info = state_info["info"]["obs_nodes_info"]
 
-        obs_nodes_list = sorted(obs_nodes_info.items(),key=lambda x:int(x[0])) # sorted by 'id'
-        for idx,obs_node in obs_nodes_list:
+        state_info:StateInfo = trajectory[-1] # type: ignore[assignment]
+        tab_title_str = state_info["info"]["observation_metadata"]["text"]["tab_title_str"]
+        obs_nodes_info = state_info["info"]["observation_metadata"]["text"]["obs_nodes_info"]
+
+        obs_nodes_pair_list = sorted(obs_nodes_info.items(),key=lambda x:int(x[0])) # sorted by 'id'
+        for idx,obs_node in obs_nodes_pair_list:
             obs_nodes_str_list.append(obs_node["text"])
         
         query_list = [self._get_detailed_instruct(intent,reflexion)]
-
         # get embeddings
         input_texts = query_list + obs_nodes_str_list
         batch_dict = self.tokenizer(
@@ -148,11 +155,12 @@ class EmbeddingBasedRetriever(Retriever):
         m = len(query_list)
         scores = (embeddings[:m] @ embeddings[m:].T) * 100
 
-        k = self.embedding_config.k_threshold
-        topk_scores, topk_indices = torch.topk(scores, k, dim=0, largest=True, sorted=True)
+        k = self.embedding_config.k_threshold if self.embedding_config.k_threshold < len(obs_nodes_pair_list) else len(obs_nodes_pair_list)
         
-        topk_backend_ids = [obs_nodes_list[idx]["backend_id"] for idx in topk_indices.tolist()]
-        topk_texts = [obs_nodes_list[idx]["text"] for idx in topk_indices.tolist()]
+        topk_scores, topk_indices = torch.topk(scores.flatten(), k, dim=0, largest=True, sorted=True)
+        
+        topk_backend_ids = [obs_nodes_pair_list[idx][0] for idx in topk_indices.tolist()]
+        topk_texts = [obs_nodes_pair_list[idx][1]["text"] for idx in topk_indices.tolist()]
         
         sorted_pairs = sorted(zip(topk_backend_ids, topk_texts), key=lambda x: x[0])
 
@@ -180,9 +188,9 @@ def construct_retriever(args: argparse.Namespace) -> Retriever:
 
     retriever: Retriever
 
-    if args.r_mode == 0:
+    if args.retriever_mode == 0:
         retriever = FakeRetriever()
-    elif args.r_mode == 1:
+    elif args.retriever_mode == 1:
         with open(args.r_instruction_path) as f:
             constructor_type = json.load(f)["meta_data"]["prompt_constructor"]
         tokenizer = Tokenizer(args.r_provider, args.r_model)
@@ -193,12 +201,12 @@ def construct_retriever(args: argparse.Namespace) -> Retriever:
             lm_config=llm_config,
             prompt_constructor=prompt_constructor
         )
-    elif args.r_mode == 2:
+    elif args.retriever_mode == 2:
         retriever = EmbeddingBasedRetriever(
             r_config.embedding_config
         )
         pass
     else:
-        raise ValueError(f"Unknown retriever mode: '{args.r_mode}'.")
+        raise ValueError(f"Unknown retriever mode: '{args.retriever_mode}'.")
 
     return retriever

@@ -4,5 +4,9 @@ from .agent import (
     TeacherForcingAgent,
     construct_agent
 )
-
-__all__ = ["Agent", "TeacherForcingAgent", "PromptAgent", "construct_agent"]
+from .prompts.prompt_constructor import (
+    PromptConstructor,
+    CoTPromptConstructor,
+    DirectPromptConstructor
+)
+__all__ = ["Agent", "TeacherForcingAgent", "PromptAgent", "construct_agent","CoTPromptConstructor"]

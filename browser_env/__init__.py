@@ -35,7 +35,7 @@ from .async_envs import AsyncScriptBrowserEnv
 from .envs import ScriptBrowserEnv
 from .processors import ObservationMetadata
 from .trajectory import Trajectory
-from .utils import DetachedPage, StateInfo
+from .utils import DetachedPage, StateInfo,png_bytes_to_numpy
 
 __all__ = [
     "ScriptBrowserEnv",
@@ -73,4 +73,5 @@ __all__ = [
     "create_stop_action",
     "ActionParsingError",
     "Trajectory",
+    "png_bytes_to_numpy"
 ]

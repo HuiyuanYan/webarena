@@ -5,11 +5,12 @@ from .providers.openai_utils import (
     generate_from_openai_completion,
 )
 from .utils import call_llm,APIInput
-
+from .tokenizers import Tokenizer
 __all__ = [
     "generate_from_openai_completion",
     "generate_from_openai_chat_completion",
     "generate_from_huggingface_completion",
     "call_llm",
-    "APIInput"
+    "APIInput",
+    "Tokenizer"
 ]

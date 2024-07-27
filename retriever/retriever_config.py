@@ -37,16 +37,24 @@ class RetrieverConfig:
     embedding_config: EmbeddingConfig
 
 def construct_retriever_config(args:argparse.Namespace) -> RetrieverConfig:
-    retriever_config = RetrieverConfig(
-        retriever_mode=args.r_mode
+    
+    llm_config = LMConfig(
+        provider=args.r_provider, model=args.r_model, mode=args.r_mode
     )
-    llm_config = LMConfig()
-    embedding_config = EmbeddingConfig()
-
-    if args.r_mode == 0:
+    embedding_config = EmbeddingConfig(
+        k_threshold=args.r_k_threshold,
+        model_name_or_path=args.r_model_name_or_path,
+        tokenizer_name_or_path=args.r_tokenizer_name_or_path
+    )
+    retriever_config = RetrieverConfig(
+        retriever_mode=args.retriever_mode,
+        llm_config=llm_config,
+        embedding_config=embedding_config
+    )
+    if args.retriever_mode == 0:
         pass
-    elif args.r_mode == 1:
-        if args.r_provier == "openai":
+    elif args.retriever_mode == 1:
+        if args.r_provider == "openai":
             llm_config.gen_config["temperature"] = args.r_temperature
             llm_config.gen_config["top_p"] = args.r_top_p
             llm_config.gen_config["context_length"] = args.r_context_length
@@ -66,15 +74,9 @@ def construct_retriever_config(args:argparse.Namespace) -> RetrieverConfig:
             llm_config.gen_config["max_retry"] = args.r_max_retry
         else:
             raise NotImplementedError(f"provider {args.r_provider} not implemented")
-    elif args.r_mode == 1:
-        embedding_config.k_threshold = args.r_k_threshold
-        embedding_config.model_name_or_path = args.r_model_name_or_path
-        embedding_config.tokenizer_name_or_path = args.r_tokenizer_name_or_path
+    elif args.retriever_mode == 2:
         embedding_config.gen_config["max_length"] = args.r_max_length
         embedding_config.gen_config["padding"] = args.r_padding
         embedding_config.gen_config["truncation"] = args.r_truncation
     
-    retriever_config.llm_config = llm_config
-    retriever_config.embedding_config = embedding_config
-
     return retriever_config

@@ -1,0 +1,140 @@
+[Config file]: /tmp/tmpr7fe2kev/0.json
+[Unhandled Error] KeyError('tab_title_str')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 134, in simplify_observation
+    tab_title_str = state_info["info"]["tab_title_str"]
+KeyError: 'tab_title_str'
+[Config file]: /tmp/tmpgmxgg96y/0.json
+[Unhandled Error] KeyError('tab_title_str')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 134, in simplify_observation
+    tab_title_str = state_info["info"]["observation_metadata"]["tab_title_str"]
+KeyError: 'tab_title_str'
+[Config file]: /tmp/tmp2ycrpgrl/0.json
+[Unhandled Error] KeyError('tab_title_str')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 135, in simplify_observation
+    tab_title_str = state_info["info"]["observation_metadata"]["tab_title_str"]
+KeyError: 'tab_title_str'
+[Config file]: /tmp/tmprtfllpvj/0.json
+[Unhandled Error] KeyError('max_length')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 147, in simplify_observation
+    max_length=self.embedding_config.gen_config["max_length"],
+KeyError: 'max_length'
+[Config file]: /tmp/tmpx9c8npzp/0.json
+[Unhandled Error] KeyError('max_length')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 148, in simplify_observation
+    max_length=self.embedding_config.gen_config["max_length"],
+KeyError: 'max_length'
+[Config file]: /tmp/tmpdciwkhbg/0.json
+[Unhandled Error] KeyError('max_length')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 148, in simplify_observation
+    max_length=self.embedding_config.gen_config["max_length"],
+KeyError: 'max_length'
+[Config file]: /tmp/tmp5weszqj5/0.json
+[Unhandled Error] KeyError('max_length')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 148, in simplify_observation
+    max_length=self.embedding_config.gen_config["max_length"],
+KeyError: 'max_length'
+[Config file]: /tmp/tmpokgn_77j/0.json
+[Unhandled Error] ValueError("Unable to create tensor, you should probably activate truncation and/or padding with 'padding=True' 'truncation=True' to have batched tensors with the same length. Perhaps your features (`input_ids` in this case) have excessive nesting (inputs type `list` where type `int` is expected).")
+Traceback (most recent call last):
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 762, in convert_to_tensors
+    tensor = as_tensor(value)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 724, in as_tensor
+    return torch.tensor(value)
+ValueError: expected sequence of length 27 at dim 1 (got 6)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 145, in simplify_observation
+    batch_dict = self.tokenizer(
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 3073, in __call__
+    encodings = self._call_one(text=text, text_pair=text_pair, **all_kwargs)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 3160, in _call_one
+    return self.batch_encode_plus(
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 3356, in batch_encode_plus
+    return self._batch_encode_plus(
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_fast.py", line 576, in _batch_encode_plus
+    return BatchEncoding(sanitized_tokens, sanitized_encodings, tensor_type=return_tensors)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 227, in __init__
+    self.convert_to_tensors(tensor_type=tensor_type, prepend_batch_axis=prepend_batch_axis)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 778, in convert_to_tensors
+    raise ValueError(
+ValueError: Unable to create tensor, you should probably activate truncation and/or padding with 'padding=True' 'truncation=True' to have batched tensors with the same length. Perhaps your features (`input_ids` in this case) have excessive nesting (inputs type `list` where type `int` is expected).
+[Config file]: /tmp/tmpmnstxicw/0.json
+[Unhandled Error] ValueError("Unable to create tensor, you should probably activate truncation and/or padding with 'padding=True' 'truncation=True' to have batched tensors with the same length. Perhaps your features (`input_ids` in this case) have excessive nesting (inputs type `list` where type `int` is expected).")
+Traceback (most recent call last):
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 762, in convert_to_tensors
+    tensor = as_tensor(value)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 724, in as_tensor
+    return torch.tensor(value)
+ValueError: expected sequence of length 27 at dim 1 (got 6)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 145, in simplify_observation
+    batch_dict = self.tokenizer(
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 3073, in __call__
+    encodings = self._call_one(text=text, text_pair=text_pair, **all_kwargs)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 3160, in _call_one
+    return self.batch_encode_plus(
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 3356, in batch_encode_plus
+    return self._batch_encode_plus(
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_fast.py", line 576, in _batch_encode_plus
+    return BatchEncoding(sanitized_tokens, sanitized_encodings, tensor_type=return_tensors)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 227, in __init__
+    self.convert_to_tensors(tensor_type=tensor_type, prepend_batch_axis=prepend_batch_axis)
+  File "/home/yangfn/anaconda3/envs/webarena/lib/python3.10/site-packages/transformers/tokenization_utils_base.py", line 778, in convert_to_tensors
+    raise ValueError(
+ValueError: Unable to create tensor, you should probably activate truncation and/or padding with 'padding=True' 'truncation=True' to have batched tensors with the same length. Perhaps your features (`input_ids` in this case) have excessive nesting (inputs type `list` where type `int` is expected).
+[Config file]: /tmp/tmpvx29yb_y/0.json
+[Unhandled Error] RuntimeError('selected index k out of range')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 160, in simplify_observation
+    topk_scores, topk_indices = torch.topk(scores, k, dim=0, largest=True, sorted=True)
+RuntimeError: selected index k out of range
+[Config file]: /tmp/tmpyrgh1q8k/0.json
+[Unhandled Error] RuntimeError('selected index k out of range')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 162, in simplify_observation
+    topk_scores, topk_indices = torch.topk(scores, k, dim=0, largest=True, sorted=True)
+RuntimeError: selected index k out of range
+[Config file]: /tmp/tmpr2a_3l42/0.json
+[Unhandled Error] TypeError('tuple indices must be integers or slices, not str')
+Traceback (most recent call last):
+  File "/data3/funing/webarena/run.py", line 363, in test
+    obs_after = retriever.simplify_observation(
+  File "/data3/funing/webarena/retriever/retriever.py", line 166, in simplify_observation
+    topk_backend_ids = [obs_nodes_list[idx]["backend_id"] for idx in topk_indices.tolist()]
+  File "/data3/funing/webarena/retriever/retriever.py", line 166, in <listcomp>
+    topk_backend_ids = [obs_nodes_list[idx]["backend_id"] for idx in topk_indices.tolist()]
+TypeError: tuple indices must be integers or slices, not str

@@ -14,7 +14,9 @@ from browser_env import (
     ObservationMetadata,
     StateInfo,
     action2str,
+    png_bytes_to_numpy
 )
+
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -156,7 +158,11 @@ class RenderHelper(object):
         if render_screenshot:
             # image observation
             img_obs = observation["image"]
-            image = Image.fromarray(img_obs)  # type:ignore
+            if isinstance(img_obs,bytes):
+                img_arr = png_bytes_to_numpy(img_obs)
+            elif isinstance(img_obs,dict):
+                img_arr = png_bytes_to_numpy(img_obs["grounded"])
+            image = Image.fromarray(img_arr)  # type:ignore
             byte_io = io.BytesIO()
             image.save(byte_io, format="PNG")
             byte_io.seek(0)

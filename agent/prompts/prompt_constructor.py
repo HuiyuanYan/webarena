@@ -249,7 +249,7 @@ class DirectPromptConstructor(PromptConstructor):
                 return response[start_index + len(reflexion_phrase):].strip()
         else:
             return f"You did not output the reflection format correctly in your last response:{response},"\
-                    "Please provide your reflexion in the following format: 'In reflexion' followed by your reflexion"
+                    f"Please provide your reflexion in the following format: '{reflexion_phrase}' followed by your reflexion"
 
 
 class CoTPromptConstructor(PromptConstructor):
@@ -331,7 +331,7 @@ class CoTPromptConstructor(PromptConstructor):
                 return response[start_index + len(reflexion_phrase):].strip()
         else:
             return f"You did not output the reflection format correctly in your last response:{response},"\
-                    "Please provide your reflexion in the following format: 'In reflexion' followed by your reflexion"
+                    f"Please provide your reflexion in the following format: '{reflexion_phrase}' followed by your reflexion"
     
     def _extract_observation(self, response: str) -> str:
         observation_phrase = self.instruction["meta_data"].get("observation_phrase", "")
